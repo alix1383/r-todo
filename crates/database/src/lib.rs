@@ -15,6 +15,12 @@ pub struct Task {
 
 pub fn check_data_dir() {
     AppData::default().ensure_data_dir().unwrap();
+
+    let path = get_file_path();
+
+    if let Ok(false) = fs::exists(&path) {
+        fs::write(path, "[]").unwrap()
+    }
 }
 
 fn write(tasks: &Vec<Task>) {

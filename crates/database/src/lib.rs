@@ -18,7 +18,7 @@ fn get_base_dir() -> PathBuf {
     let is_dir = base_dir.data_local_dir().is_dir();
 
     if !is_dir {
-        fs::create_dir(&base_dir.data_local_dir()).unwrap();
+        fs::create_dir_all(&base_dir.data_local_dir()).unwrap();
     }
 
     base_dir.data_local_dir().join("data.json")

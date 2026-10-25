@@ -15,7 +15,7 @@ pub struct Task {
 
 fn get_base_dir() -> PathBuf {
     let base_dir = ProjectDirs::from("ir", "sekai", "r-todo").unwrap();
-    base_dir.data_local_dir().join("data.json")
+    base_dir.data_dir().join("data.json")
 }
 
 pub fn check_data_file_exists() {

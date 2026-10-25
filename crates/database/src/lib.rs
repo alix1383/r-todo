@@ -15,14 +15,19 @@ pub struct Task {
 
 fn get_base_dir() -> PathBuf {
     let base_dir = ProjectDirs::from("ir", "sekai", "r-todo").unwrap();
-    base_dir.data_dir().join("data.json")
+    let is_dir = base_dir.data_local_dir().is_dir();
+
+    if !is_dir {
+        fs::create_dir(&base_dir.data_local_dir()).unwrap();
+    }
+
+    base_dir.data_local_dir().join("data.json")
 }
 
 pub fn check_data_file_exists() {
     let path = get_base_dir();
-    let is_exists = path.exists();
 
-    if !is_exists {
+    if !path.is_file() {
         fs::write(path, "[]\n\n").unwrap()
     }
 }

@@ -1,0 +1,78 @@
+name: Build and release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux x86_64
+            artifact_name: r-todo-linux-x86_64.tar.gz
+          - os: windows-latest
+            name: Windows x86_64
+            artifact_name: r-todo-windows-x86_64.zip
+          - os: macos-latest
+            name: macOS x86_64
+            artifact_name: r-todo-macos-x86_64.tar.gz
+          - os: macos-14
+            name: macOS ARM64
+            artifact_name: r-todo-macos-arm64.tar.gz
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Package binary
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp target/release/r-todo.exe .
+            zip -j "${{ matrix.artifact_name }}" r-todo.exe
+          else
+            cp target/release/r-todo .
+            tar -czf "${{ matrix.artifact_name }}" r-todo
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true

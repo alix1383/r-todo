@@ -1,8 +1,8 @@
-use app_data::AppData;
+use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
-
 use std::{
     fs,
+    path::PathBuf,
     time::{self, UNIX_EPOCH},
 };
 
@@ -13,40 +13,40 @@ pub struct Task {
     time: u64,
 }
 
-pub fn check_data_dir() {
-    AppData::default().ensure_data_dir().unwrap();
+fn get_base_dir() -> PathBuf {
+    let base_dir = ProjectDirs::from("ir", "sekai", "r-todo").unwrap();
+    base_dir.data_local_dir().join("data.json")
+}
 
-    let path = get_file_path();
+pub fn check_data_file_exists() {
+    let path = get_base_dir();
+    let is_exists = path.exists();
 
-    if let Ok(false) = fs::exists(&path) {
-        fs::write(path, "[]").unwrap()
+    if !is_exists {
+        fs::write(path, "[]\n\n").unwrap()
     }
 }
 
 fn write(tasks: &Vec<Task>) {
+    let path = get_base_dir();
     let data = serde_json::to_string(&tasks).unwrap();
 
-    fs::write(get_file_path(), data).unwrap()
+    fs::write(path, data).unwrap()
 }
 
 fn read() -> Vec<Task> {
-    let data_buf = fs::read_to_string(get_file_path()).unwrap();
+    let path = get_base_dir();
+
+    let data_buf = fs::read_to_string(path).unwrap();
 
     let data: Vec<Task> = serde_json::from_str(&data_buf).unwrap();
 
     data
 }
 
-fn get_file_path() -> String {
-    AppData::default()
-        .get_file_path("data.json")
-        .unwrap()
-        .into_string()
-        .unwrap()
-}
-
 pub fn reset_data() {
-    fs::write(get_file_path(), "[]").unwrap();
+    let path = get_base_dir();
+    fs::remove_file(path).unwrap();
 }
 
 pub fn print_task_list() {
@@ -59,11 +59,20 @@ pub fn print_task_list() {
         )
     }
 }
-
+fn check_duplicate_task(task_name: &str, tasks: &[Task]) -> bool {
+    tasks
+        .iter()
+        .any(|x| x.task_name.eq_ignore_ascii_case(task_name))
+}
 pub fn add_task(task_name: &String) {
     let name = task_name.to_string();
-
     let mut tasks: Vec<Task> = read();
+
+    if check_duplicate_task(task_name, &tasks) {
+        println!("{} task already exists", task_name);
+        return;
+    }
+
     let time = time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -85,7 +94,7 @@ pub fn remove_task(task_name: &String) {
 
     if let Some(index) = tasks
         .iter()
-        .position(|x| x.task_name.to_lowercase() == task_name.to_lowercase())
+        .position(|x| x.task_name.eq_ignore_ascii_case(task_name))
     {
         tasks.remove(index);
         write(&tasks);
@@ -99,7 +108,7 @@ pub fn toggle_task(task_name: &String) {
 
     if let Some(index) = tasks
         .iter()
-        .position(|x| x.task_name.to_lowercase() == task_name.to_lowercase())
+        .position(|x| x.task_name.eq_ignore_ascii_case(task_name))
     {
         tasks[index].is_done = !tasks[index].is_done;
         write(&tasks);

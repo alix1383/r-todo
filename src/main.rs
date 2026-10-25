@@ -1,10 +1,9 @@
 use cli::Comamnds;
+
 fn main() {
-    // check data dir
-    database::check_data_dir();
+    database::check_data_file_exists();
 
     let args = cli::cli();
-    // println!("{:#?}", args);
 
     match &args.command {
         Comamnds::Add { task_name } => database::add_task(&task_name),

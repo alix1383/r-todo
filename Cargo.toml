@@ -1,6 +1,6 @@
 [package]
 name = "r-todo"
-version = "0.1.1"
+version = "0.1.5"
 edition = "2024"
 
 [dependencies]
@@ -10,3 +10,11 @@ database = { path = "crates/database" }
 [workspace]
 resolver = "3"
 members = ["crates/cli", "crates/database"]
+
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
